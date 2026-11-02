@@ -104,7 +104,7 @@ class MainActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         btnRender = findViewById(R.id.btnRender)
 
-        // ВАЖНО: Задаем масштаб 100% (1 CSS px = 1 физический px), чтобы не было 3x зума плотности экрана!
+        // Масштаб 100%: 1 CSS-пиксель = 1 физический пиксель холста 1080x1920
         webView.setInitialScale(100)
         webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
         webView.settings.apply {
@@ -158,12 +158,13 @@ class MainActivity : AppCompatActivity() {
         tvStatus.text = "[1/4] Трек: ${String.format(Locale.US, "%.2f", durSec)} сек ($totalFrames кадров)\nЗагрузка шаблона и шрифтов..."
 
         val rawHtml = customHtmlContent ?: assets.open("default_template.html").bufferedReader().use { it.readText() }
+        // Удаляем <meta name="viewport">, если ИИ его вставил, чтобы он не сбивал setInitialScale(100)
         val finalHtml = rawHtml
+            .replace(Regex("<meta[^>]*name=[\"']viewport[\"'][^>]*>", RegexOption.IGNORE_CASE), "")
             .replace("__DUR__", String.format(Locale.US, "%.3f", durSec))
             .replace("__BG_COLOR__", if (hasVideoBg) "transparent" else "#070709")
             .replace("__GLOW_DISPLAY__", if (hasVideoBg) "none" else "block")
 
-        // Ждем полной загрузки HTML в WebView
         val pageLoaded = CompletableDeferred<Unit>()
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -174,7 +175,7 @@ class MainActivity : AppCompatActivity() {
         webView.loadDataWithBaseURL("https://fonts.googleapis.com/", finalHtml, "text/html", "UTF-8", null)
         withTimeoutOrNull(5000) { pageLoaded.await() }
 
-        // Внедряем синхронизатор кадров и авто-калибровку масштаба 1080x1920
+        // Оставляем только ожидание шрифтов и шаг кадра (без повторного уменьшения scale!)
         val initJs = """
             (function() {
                 window.__fontsReady = false;
@@ -182,12 +183,6 @@ class MainActivity : AppCompatActivity() {
                     document.fonts.ready.then(function() { window.__fontsReady = true; });
                 } else {
                     window.__fontsReady = true;
-                }
-                var vw = document.documentElement.clientWidth || window.innerWidth;
-                if (vw > 0 && Math.abs(vw - 1080) > 2) {
-                    var s = vw / 1080;
-                    document.body.style.transformOrigin = '0 0';
-                    document.body.style.transform = 'scale(' + s + ')';
                 }
                 window.__stepFrame = function(t) {
                     if (window.seekTo) window.seekTo(t);
@@ -205,7 +200,6 @@ class MainActivity : AppCompatActivity() {
             webView.evaluateJavascript(initJs) { cont.resume(Unit) }
         }
 
-        // Ждем загрузки Google Fonts (до 3 секунд)
         for (i in 0 until 30) {
             val ready = suspendCancellableCoroutine<String> { cont ->
                 webView.evaluateJavascript("window.__fontsReady") { res -> cont.resume(res ?: "false") }
@@ -227,7 +221,6 @@ class MainActivity : AppCompatActivity() {
         for (f in 0 until totalFrames) {
             val t = f.toDouble() / FPS
 
-            // Вызываем шаг анимации и ждем отрисовки кадра браузером (requestAnimationFrame)
             withTimeoutOrNull(80) {
                 suspendCancellableCoroutine<Unit> { cont ->
                     frameReadyContinuation = cont
