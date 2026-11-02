@@ -11,8 +11,8 @@ android {
         applicationId = "com.swooshy.lyricrenderer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 3
+        versionName = "3.0"
     }
 
     compileOptions {
@@ -29,4 +29,8 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Исправленная версия 8.1.9 (со встроенным libc++_shared.so) + smart-exception
+    implementation("com.arthenica:smart-exception-java:0.2.1")
+    implementation("dev.ffmpegkit-maintained:ffmpeg-kit-full-gpl:8.1.9")
 }
