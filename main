@@ -1,0 +1,680 @@
+mkdir -p .github/workflows app/src/main/java/com/swooshy/lyricrenderer app/src/main/res/layout app/src/main/assets
+
+cat << 'EOF' > settings.gradle.kts
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "SwooshyRenderer"
+include(":app")
+EOF
+
+cat << 'EOF' > build.gradle.kts
+plugins {
+    id("com.android.application") version "8.5.2" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
+}
+EOF
+
+cat << 'EOF' > gradle.properties
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+kotlin.code.style=official
+android.nonTransitiveRClass=true
+EOF
+
+cat << 'EOF' > app/build.gradle.kts
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+}
+
+android {
+    namespace = "com.swooshy.lyricrenderer"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "com.swooshy.lyricrenderer"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("dev.ffmpegkit-maintained:ffmpeg-kit-full-gpl:8.1.7")
+}
+EOF
+
+cat << 'EOF' > app/src/main/AndroidManifest.xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application
+        android:allowBackup="true"
+        android:label="Swooshy Renderer"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+EOF
+
+cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0D0D11">
+
+    <FrameLayout
+        android:layout_width="1080px"
+        android:layout_height="1920px"
+        android:translationX="5000dp">
+        <WebView
+            android:id="@+id/offscreenWebView"
+            android:layout_width="1080px"
+            android:layout_height="1920px" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SWOOSHY JS RENDERER"
+            android:textColor="#F6F3EC"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp"/>
+
+        <Button
+            android:id="@+id/btnPickAudio"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="1. Выбрать аудио (.mp3)"
+            android:backgroundTint="#23232E"
+            android:textColor="#FFFFFF"/>
+
+        <Button
+            android:id="@+id/btnPickVideo"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="10dp"
+            android:text="2. Видео-фон (.mp4) [Опционально]"
+            android:backgroundTint="#23232E"
+            android:textColor="#FFFFFF"/>
+
+        <Button
+            android:id="@+id/btnPickHtml"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="10dp"
+            android:text="3. Свой шаблон (.html) [По умолч. вшит]"
+            android:backgroundTint="#23232E"
+            android:textColor="#FFFFFF"/>
+
+        <Button
+            android:id="@+id/btnRender"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="24dp"
+            android:text="НАЧАТЬ РЕНДЕР (1080x1920)"
+            android:backgroundTint="#FF1E42"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="16sp"/>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="12dp"
+            android:layout_marginTop="24dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#E2FF44"/>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Готов к работе.\nВыберите MP3 для старта."
+            android:textColor="#A0A0B0"
+            android:fontFamily="monospace"
+            android:textSize="13sp"/>
+    </LinearLayout>
+</FrameLayout>
+EOF
+
+cat << 'EOF' > app/src/main/assets/default_template.html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,700&family=JetBrains+Mono:wght@500;700&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root { --bone: #F6F3EC; --rose: #FF94B8; --crimson: #FF1E42; --acid: #E2FF44; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1080px; height: 1920px; overflow: hidden;
+    background: __BG_COLOR__;
+    font-family: 'Unbounded', sans-serif; color: var(--bone);
+    -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: relative; width: 1080px; height: 1920px; display: flex; align-items: center; justify-content: center; }
+  #bg_glow {
+    position: absolute; width: 900px; height: 900px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 110, 165, 0.22) 0%, rgba(120, 40, 200, 0.08) 45%, transparent 72%);
+    pointer-events: none; display: __GLOW_DISPLAY__;
+  }
+  .scene { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 70px; pointer-events: none; opacity: 0; }
+  .w-item { will-change: transform, opacity; text-align: center; }
+  .serif { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; line-height: 0.96; letter-spacing: -0.01em; text-shadow: 0 10px 34px rgba(0, 0, 0, 0.92), 0 2px 10px rgba(0, 0, 0, 0.95); }
+  .disp { font-family: 'Unbounded', sans-serif; font-weight: 900; text-transform: uppercase; line-height: 0.92; letter-spacing: -0.035em; text-shadow: 0 12px 38px rgba(0, 0, 0, 0.95), 0 3px 10px rgba(0, 0, 0, 0.98); }
+  .disp-outline { font-family: 'Unbounded', sans-serif; font-weight: 900; text-transform: uppercase; line-height: 0.92; letter-spacing: -0.035em; color: transparent; -webkit-text-stroke: 2.5px rgba(255, 30, 66, 0.5); }
+  .mono { font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; font-size: 20px; color: rgba(246, 243, 236, 0.38); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg_glow"></div>
+  <div class="mono" style="position:absolute; top: 140px;">SWOOSHY</div>
+  <div id="tc_bot" class="mono" style="position:absolute; bottom: 140px;">00:00:00</div>
+  <div id="f1" class="scene">
+    <div id="f1_a" class="w-item serif" style="font-size: 112px; color: var(--bone);">любить меня</div>
+    <div id="f1_b" class="w-item disp" style="font-size: 56px; color: rgba(246,243,236,0.88); margin-top: 18px;">НЕ ТО ЖЕ САМОЕ</div>
+  </div>
+  <div id="f2" class="scene">
+    <div id="f2_a" class="w-item disp" style="font-size: 52px; color: rgba(246,243,236,0.75);">ТО, ЧТО</div>
+    <div id="f2_b" class="w-item serif" style="font-size: 124px; color: var(--rose); margin-top: 8px; text-shadow: 0 0 38px rgba(255,148,184,0.45), 0 10px 30px #000;">любить тебя</div>
+  </div>
+  <div id="f3" class="scene">
+    <div id="f3_a" class="w-item serif" style="font-size: 86px; color: var(--bone);">я</div>
+    <div id="f3_b" class="w-item disp" style="font-size: 92px; color: var(--crimson); margin: 6px 0; text-shadow: 0 0 40px rgba(255,30,66,0.75), 0 10px 30px #000;">НЕНАВИЖУ</div>
+    <div id="f3_c" class="w-item serif" style="font-size: 104px; color: var(--bone);">все подарки</div>
+  </div>
+  <div id="f4" class="scene">
+    <div id="f4_a" class="w-item serif" style="font-size: 96px; color: rgba(246,243,236,0.85);">и думал,</div>
+    <div id="f4_b" class="w-item serif" style="font-size: 122px; color: var(--bone); margin-top: 6px;">ты поняла...</div>
+  </div>
+  <div id="f5" class="scene">
+    <div id="f5_a" class="w-item serif" style="font-size: 92px; color: var(--bone);">но я</div>
+    <div id="f5_b" class="w-item disp" style="font-size: 98px; color: var(--acid); margin-top: 10px; text-shadow: 0 0 40px rgba(226,255,68,0.55), 0 10px 30px #000;">НЕ ПРОТИВ</div>
+  </div>
+  <div id="f6" class="scene">
+    <div id="f6_a" class="w-item serif" style="font-size: 88px; color: rgba(246,243,236,0.9);">если это твоя</div>
+    <div id="f6_echo" class="w-item disp-outline" style="position:absolute; top: 53%; font-size: 138px;">П@ЗД@</div>
+    <div id="f6_b" class="w-item disp" style="font-size: 124px; color: var(--crimson); margin-top: 14px; text-shadow: 0 0 50px rgba(255,30,66,0.9), 0 12px 35px #000;">П@ЗД@</div>
+  </div>
+  <div id="f7" class="scene">
+    <div id="f7_a" class="w-item disp" style="font-size: 72px; color: var(--bone);">НЕТ, Я</div>
+    <div id="f7_b" class="w-item disp" style="font-size: 98px; color: var(--acid); margin-top: 10px; text-shadow: 0 0 40px rgba(226,255,68,0.55), 0 10px 30px #000;">НЕ ПРОТИВ</div>
+  </div>
+  <div id="f8" class="scene">
+    <div id="f8_a" class="w-item serif" style="font-size: 94px; color: rgba(246,243,236,0.85);">если это</div>
+    <div id="f8_b" class="w-item serif" style="font-size: 132px; color: var(--rose); margin-top: 4px; text-shadow: 0 0 42px rgba(255,148,184,0.6), 0 10px 30px #000;">твоя...</div>
+  </div>
+</div>
+<script>
+  const DUR = __DUR__;
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const p = (t, s, d) => clamp((t - s) / d);
+  const expoOut = x => x >= 1 ? 1 : 1 - Math.pow(2, -10 * x);
+  const power3In = x => x * x * x;
+  const backOut = (x, s = 1.9) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const $ = id => document.getElementById(id);
+  const ALL = ['f1','f2','f3','f4','f5','f6','f7','f8'];
+  function applyRgb(el, amt) {
+    if (amt > 0.4) {
+      const d = amt.toFixed(1);
+      el.style.textShadow = `-${d}px 0px #FF1844, ${d}px 0px #00F0FF, 0 12px 35px rgba(0,0,0,0.95)`;
+    } else { el.style.textShadow = ''; }
+  }
+  window.seekTo = function(t) {
+    ALL.forEach(id => { $(id).style.opacity = 0; });
+    const sec = Math.floor(t);
+    const fr = Math.floor((t - sec) * 30);
+    $('tc_bot').textContent = `00:${String(sec).padStart(2, '0')}:${String(fr).padStart(2, '0')}`;
+    const glow = $('bg_glow');
+    const gx = Math.sin(t * 0.9) * 90;
+    const gy = Math.cos(t * 0.7) * 110;
+    const gScale = t >= 8.15 ? 1.15 + Math.sin(t * 8) * 0.08 : 1.0;
+    glow.style.transform = `translate3d(${gx.toFixed(1)}px, ${gy.toFixed(1)}px, 0) scale(${gScale.toFixed(3)})`;
+    if (t >= 10.05 && t <= 11.98) {
+      glow.style.background = 'radial-gradient(circle, rgba(255, 30, 66, 0.28) 0%, rgba(160, 20, 60, 0.10) 48%, transparent 72%)';
+    } else {
+      glow.style.background = 'radial-gradient(circle, rgba(255, 110, 165, 0.22) 0%, rgba(120, 40, 200, 0.08) 45%, transparent 72%)';
+    }
+    if (t >= 0.35 && t < 2.35) {
+      const out = t > 2.10 ? power3In(p(t, 2.10, 0.25)) : 0;
+      $('f1').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 0.38, 0.50));
+      $('f1_a').style.opacity = u1.toFixed(3);
+      $('f1_a').style.transform = `translate3d(0, ${((1 - u1) * 35 - out * 30).toFixed(1)}px, 0)`;
+      const u2 = expoOut(p(t, 1.15, 0.45));
+      $('f1_b').style.opacity = u2.toFixed(3);
+      $('f1_b').style.transform = `translate3d(0, ${((1 - u2) * 30 - out * 30).toFixed(1)}px, 0)`;
+    }
+    if (t >= 2.35 && t < 4.25) {
+      const out = t > 4.00 ? power3In(p(t, 4.00, 0.25)) : 0;
+      $('f2').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 2.38, 0.36));
+      $('f2_a').style.opacity = u1.toFixed(3);
+      $('f2_a').style.transform = `translate3d(0, ${((1 - u1) * 25 - out * 30).toFixed(1)}px, 0)`;
+      const u2 = backOut(p(t, 2.90, 0.50), 1.6);
+      $('f2_b').style.opacity = clamp(p(t, 2.90, 0.20)).toFixed(3);
+      $('f2_b').style.transform = `translate3d(0, ${((1 - u2) * 40 - out * 30).toFixed(1)}px, 0) scale(${(0.92 + u2 * 0.08).toFixed(3)})`;
+    }
+    if (t >= 4.25 && t < 6.20) {
+      const out = t > 5.95 ? power3In(p(t, 5.95, 0.25)) : 0;
+      $('f3').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 4.28, 0.28));
+      $('f3_a').style.opacity = u1.toFixed(3);
+      if (t >= 4.55) {
+        const u2 = backOut(p(t, 4.55, 0.32), 2.2);
+        const rgb = (1 - p(t, 4.55, 0.26)) * 12;
+        $('f3_b').style.opacity = 1;
+        $('f3_b').style.transform = `scale(${(1 + (1 - u2) * 0.4).toFixed(3)})`;
+        applyRgb($('f3_b'), rgb);
+      } else { $('f3_b').style.opacity = 0; }
+      if (t >= 5.20) {
+        const u3 = expoOut(p(t, 5.20, 0.40));
+        $('f3_c').style.opacity = u3.toFixed(3);
+        $('f3_c').style.transform = `translate3d(0, ${((1 - u3) * 35).toFixed(1)}px, 0)`;
+      } else { $('f3_c').style.opacity = 0; }
+    }
+    if (t >= 6.20 && t < 8.15) {
+      const out = t > 7.90 ? power3In(p(t, 7.90, 0.25)) : 0;
+      $('f4').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 6.24, 0.40));
+      $('f4_a').style.opacity = u1.toFixed(3);
+      $('f4_a').style.transform = `translate3d(0, ${((1 - u1) * 28).toFixed(1)}px, 0)`;
+      if (t >= 6.85) {
+        const u2 = expoOut(p(t, 6.85, 0.45));
+        $('f4_b').style.opacity = u2.toFixed(3);
+        $('f4_b').style.transform = `translate3d(0, ${((1 - u2) * 35).toFixed(1)}px, 0)`;
+      } else { $('f4_b').style.opacity = 0; }
+    }
+    if (t >= 8.15 && t < 10.05) {
+      const out = t > 9.80 ? power3In(p(t, 9.80, 0.25)) : 0;
+      $('f5').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 8.18, 0.32));
+      $('f5_a').style.opacity = u1.toFixed(3);
+      $('f5_a').style.transform = `translate3d(0, ${((1 - u1) * 25).toFixed(1)}px, 0)`;
+      if (t >= 8.65) {
+        const u2 = backOut(p(t, 8.65, 0.32), 2.2);
+        const rgb = (1 - p(t, 8.65, 0.26)) * 12;
+        $('f5_b').style.opacity = 1;
+        $('f5_b').style.transform = `scale(${(1 + (1 - u2) * 0.42).toFixed(3)})`;
+        applyRgb($('f5_b'), rgb);
+      } else { $('f5_b').style.opacity = 0; }
+    }
+    if (t >= 10.05 && t < 11.98) {
+      const out = t > 11.74 ? power3In(p(t, 11.74, 0.24)) : 0;
+      $('f6').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 10.08, 0.38));
+      $('f6_a').style.opacity = u1.toFixed(3);
+      $('f6_a').style.transform = `translate3d(0, ${((1 - u1) * 30).toFixed(1)}px, 0)`;
+      if (t >= 10.85) {
+        const u2 = backOut(p(t, 10.85, 0.30), 2.5);
+        const shakeX = Math.sin(t * 95) * 6 * (1 - p(t, 10.85, 0.40));
+        const rgb = (1 - p(t, 10.85, 0.32)) * 16;
+        $('f6_b').style.opacity = 1;
+        $('f6_b').style.transform = `translate3d(${shakeX.toFixed(1)}px, 0, 0) scale(${(1 + (1 - u2) * 0.55).toFixed(3)})`;
+        applyRgb($('f6_b'), rgb);
+        $('f6_echo').style.opacity = ((1 - p(t, 10.85, 0.55)) * 0.7).toFixed(3);
+        $('f6_echo').style.transform = `scale(${(1.06 + p(t, 10.85, 0.55) * 0.35).toFixed(3)})`;
+      } else {
+        $('f6_b').style.opacity = 0;
+        $('f6_echo').style.opacity = 0;
+      }
+    }
+    if (t >= 11.98 && t < 13.85) {
+      const out = t > 13.60 ? power3In(p(t, 13.60, 0.25)) : 0;
+      $('f7').style.opacity = (1 - out).toFixed(3);
+      const u1 = backOut(p(t, 12.00, 0.28), 2.0);
+      $('f7_a').style.opacity = 1;
+      $('f7_a').style.transform = `scale(${(1 + (1 - u1) * 0.3).toFixed(3)})`;
+      if (t >= 12.50) {
+        const u2 = backOut(p(t, 12.50, 0.32), 2.2);
+        const rgb = (1 - p(t, 12.50, 0.26)) * 12;
+        $('f7_b').style.opacity = 1;
+        $('f7_b').style.transform = `scale(${(1 + (1 - u2) * 0.42).toFixed(3)})`;
+        applyRgb($('f7_b'), rgb);
+      } else { $('f7_b').style.opacity = 0; }
+    }
+    if (t >= 13.85) {
+      const fade = t > DUR - 0.35 ? p(t, DUR - 0.35, 0.35) : 0;
+      $('f8').style.opacity = (1 - fade).toFixed(3);
+      const u1 = expoOut(p(t, 13.88, 0.38));
+      $('f8_a').style.opacity = u1.toFixed(3);
+      $('f8_a').style.transform = `translate3d(0, ${((1 - u1) * 28).toFixed(1)}px, 0)`;
+      if (t >= 14.45) {
+        const u2 = expoOut(p(t, 14.45, 0.50));
+        $('f8_b').style.opacity = u2.toFixed(3);
+        $('f8_b').style.transform = `translate3d(0, ${((1 - u2) * 35).toFixed(1)}px, 0) scale(${(0.94 + u2 * 0.06).toFixed(3)})`;
+      } else { $('f8_b').style.opacity = 0; }
+    }
+  };
+</script>
+</body>
+</html>
+EOF
+
+cat << 'EOF' > app/src/main/java/com/swooshy/lyricrenderer/MainActivity.kt
+package com.swooshy.lyricrenderer
+
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
+import android.webkit.WebView
+import android.widget.Button
+import android.widget.ProgressBar
+import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.FFmpegKitConfig
+import com.arthenica.ffmpegkit.ReturnCode
+import kotlinx.coroutines.*
+import java.io.File
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
+import java.util.Locale
+import kotlin.coroutines.resume
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var webView: WebView
+    private lateinit var tvStatus: TextView
+    private lateinit var progressBar: ProgressBar
+    private lateinit var btnRender: Button
+
+    private var selectedAudioFile: File? = null
+    private var selectedVideoBgFile: File? = null
+    private var customHtmlContent: String? = null
+
+    private val W = 1080
+    private val H = 1920
+    private val FPS = 30
+
+    private val pickAudioLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            selectedAudioFile = copyUriToTempFile(it, "input_audio.mp3")
+            findViewById<Button>(R.id.btnPickAudio).text = "1. Аудио: выбрано ✅"
+            tvStatus.text = "Аудио загружено. Можно начинать рендер!"
+        }
+    }
+
+    private val pickVideoLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            selectedVideoBgFile = copyUriToTempFile(it, "input_bg.mp4")
+            findViewById<Button>(R.id.btnPickVideo).text = "2. Видео-фон: выбран ✅"
+        }
+    }
+
+    private val pickHtmlLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            customHtmlContent = contentResolver.openInputStream(it)?.bufferedReader()?.use { r -> r.readText() }
+            findViewById<Button>(R.id.btnPickHtml).text = "3. Свой HTML: выбран ✅"
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        WebView.enableSlowWholeDocumentDraw()
+        setContentView(R.layout.activity_main)
+
+        webView = findViewById(R.id.offscreenWebView)
+        tvStatus = findViewById(R.id.tvStatus)
+        progressBar = findViewById(R.id.progressBar)
+        btnRender = findViewById(R.id.btnRender)
+
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.setBackgroundColor(Color.TRANSPARENT)
+
+        findViewById<Button>(R.id.btnPickAudio).setOnClickListener { pickAudioLauncher.launch("audio/*") }
+        findViewById<Button>(R.id.btnPickVideo).setOnClickListener { pickVideoLauncher.launch("video/*") }
+        findViewById<Button>(R.id.btnPickHtml).setOnClickListener { pickHtmlLauncher.launch("text/html") }
+
+        btnRender.setOnClickListener {
+            val audio = selectedAudioFile
+            if (audio == null) {
+                tvStatus.text = "⚠️ Сначала выберите MP3 файл (Кнопка 1)!"
+                return@setOnClickListener
+            }
+            btnRender.isEnabled = false
+            CoroutineScope(Dispatchers.Main).launch {
+                try {
+                    startRenderPipeline(audio, selectedVideoBgFile)
+                } catch (e: Exception) {
+                    tvStatus.text = "Ошибка: ${e.message}"
+                    btnRender.isEnabled = true
+                }
+            }
+        }
+    }
+
+    private suspend fun startRenderPipeline(audioFile: File, videoBgFile: File?) {
+        val retriever = MediaMetadataRetriever()
+        retriever.setDataSource(audioFile.absolutePath)
+        val durMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 15500L
+        retriever.release()
+
+        val durSec = durMs / 1000.0
+        val totalFrames = Math.ceil(durSec * FPS).toInt()
+        val hasVideoBg = videoBgFile != null && videoBgFile.exists()
+
+        tvStatus.text = "[1/4] Трек: ${String.format(Locale.US, "%.2f", durSec)} сек ($totalFrames кадров)\nЗагрузка шаблона и шрифтов..."
+
+        val rawHtml = customHtmlContent ?: assets.open("default_template.html").bufferedReader().use { it.readText() }
+        val finalHtml = rawHtml
+            .replace("__DUR__", String.format(Locale.US, "%.3f", durSec))
+            .replace("__BG_COLOR__", if (hasVideoBg) "transparent" else "#070709")
+            .replace("__GLOW_DISPLAY__", if (hasVideoBg) "none" else "block")
+
+        webView.loadDataWithBaseURL("https://fonts.googleapis.com/", finalHtml, "text/html", "UTF-8", null)
+        delay(2000)
+
+        suspendCancellableCoroutine<Unit> { cont ->
+            webView.evaluateJavascript("document.fonts.ready.then(() => true)") { cont.resume(Unit) }
+        }
+
+        val tempOutputFile = File(cacheDir, "swooshy_tvoya_lyric.mp4")
+        if (tempOutputFile.exists()) tempOutputFile.delete()
+
+        val pipePath = FFmpegKitConfig.registerNewFFmpegPipe(this)
+        val durStr = String.format(Locale.US, "%.3f", durSec)
+
+        val ffCommand = if (hasVideoBg) {
+            "-y -v error -stream_loop -1 -i \"${videoBgFile!!.absolutePath}\" " +
+            "-f rawvideo -pix_fmt rgba -s ${W}x${H} -r $FPS -i \"$pipePath\" " +
+            "-i \"${audioFile.absolutePath}\" " +
+            "-filter_complex \"[0:v]scale=$W:$H:force_original_aspect_ratio=increase,crop=$W:$H[bg];[bg][1:v]overlay=0:0:format=auto[outv]\" " +
+            "-map \"[outv]\" -map 2:a -t $durStr " +
+            "-c:v libx264 -preset superfast -crf 18 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart \"${tempOutputFile.absolutePath}\""
+        } else {
+            "-y -v error -f rawvideo -pix_fmt rgba -s ${W}x${H} -r $FPS -i \"$pipePath\" " +
+            "-i \"${audioFile.absolutePath}\" " +
+            "-map 0:v -map 1:a -t $durStr " +
+            "-c:v libx264 -preset superfast -crf 18 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart \"${tempOutputFile.absolutePath}\""
+        }
+
+        val ffmpegDeferred = CompletableDeferred<Boolean>()
+        FFmpegKit.executeAsync(ffCommand) { session ->
+            ffmpegDeferred.complete(ReturnCode.isSuccess(session.returnCode))
+        }
+
+        val startTime = System.currentTimeMillis()
+        withContext(Dispatchers.IO) {
+            FileOutputStream(File(pipePath)).use { pipeOut ->
+                val bitmap = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                val byteBuffer = ByteBuffer.allocate(W * H * 4)
+
+                for (f in 0 until totalFrames) {
+                    val t = f.toDouble() / FPS
+
+                    withContext(Dispatchers.Main) {
+                        suspendCancellableCoroutine<Unit> { cont ->
+                            webView.evaluateJavascript("window.seekTo($t);") { cont.resume(Unit) }
+                        }
+                        bitmap.eraseColor(Color.TRANSPARENT)
+                        webView.draw(canvas)
+                    }
+
+                    byteBuffer.rewind()
+                    bitmap.copyPixelsToBuffer(byteBuffer)
+                    pipeOut.write(byteBuffer.array())
+
+                    val done = f + 1
+                    if (done % 5 == 0 || done == totalFrames) {
+                        val pct = (done * 100) / totalFrames
+                        val elapsed = (System.currentTimeMillis() - startTime) / 1000.0
+                        val speed = done / elapsed.coerceAtLeast(0.1)
+                        val eta = ((totalFrames - done) / speed.coerceAtLeast(0.1)).toInt()
+
+                        withContext(Dispatchers.Main) {
+                            progressBar.progress = pct
+                            tvStatus.text = String.format(
+                                Locale.US,
+                                "[4/4] Рендер: %d%%\nКадр: %d / %d\nСкорость: %.1f кадр/с | Осталось: ~%d сек",
+                                pct, done, totalFrames, speed, eta
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        FFmpegKitConfig.closeFFmpegPipe(pipePath)
+        val success = ffmpegDeferred.await()
+
+        if (success && tempOutputFile.exists()) {
+            val savedPath = saveVideoToDownloads(tempOutputFile)
+            val totalTime = (System.currentTimeMillis() - startTime) / 1000.0
+            tvStatus.text = "✅ ГОТОВО за ${String.format(Locale.US, "%.1f", totalTime)} сек!\nСохранено в Загрузки:\n$savedPath"
+        } else {
+            tvStatus.text = "❌ Ошибка при сборке FFmpeg."
+        }
+        btnRender.isEnabled = true
+    }
+
+    private fun copyUriToTempFile(uri: Uri, fileName: String): File {
+        val tempFile = File(cacheDir, fileName)
+        contentResolver.openInputStream(uri)?.use { input ->
+            FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+        }
+        return tempFile
+    }
+
+    private fun saveVideoToDownloads(sourceFile: File): String {
+        val fileName = "swooshy_lyric_${System.currentTimeMillis() / 1000}.mp4"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                put(MediaStore.Downloads.MIME_TYPE, "video/mp4")
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            uri?.let {
+                contentResolver.openOutputStream(it)?.use { out ->
+                    sourceFile.inputStream().use { input -> input.copyTo(out) }
+                }
+            }
+            return "Downloads/$fileName"
+        } else {
+            val dest = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
+            sourceFile.copyTo(dest, overwrite = true)
+            return dest.absolutePath
+        }
+    }
+}
+EOF
+
+cat << 'EOF' > .github/workflows/build.yml
+name: Build Swooshy APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      - name: Build Debug APK
+        run: gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: swooshy-lyric-renderer-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+EOF
+
+git add .
+git commit -m "Initialize Swooshy Lyric Renderer APK"
+git push
