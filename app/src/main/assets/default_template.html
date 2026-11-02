@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,700&family=JetBrains+Mono:wght@500;700&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root { --bone: #F6F3EC; --rose: #FF94B8; --crimson: #FF1E42; --acid: #E2FF44; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1080px; height: 1920px; overflow: hidden;
+    background: __BG_COLOR__;
+    font-family: 'Unbounded', sans-serif; color: var(--bone);
+    -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: relative; width: 1080px; height: 1920px; display: flex; align-items: center; justify-content: center; }
+  #bg_glow {
+    position: absolute; width: 900px; height: 900px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 110, 165, 0.22) 0%, rgba(120, 40, 200, 0.08) 45%, transparent 72%);
+    pointer-events: none; display: __GLOW_DISPLAY__;
+  }
+  .scene { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 70px; pointer-events: none; opacity: 0; }
+  .w-item { will-change: transform, opacity; text-align: center; }
+  .serif { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; line-height: 0.96; letter-spacing: -0.01em; text-shadow: 0 10px 34px rgba(0, 0, 0, 0.92), 0 2px 10px rgba(0, 0, 0, 0.95); }
+  .disp { font-family: 'Unbounded', sans-serif; font-weight: 900; text-transform: uppercase; line-height: 0.92; letter-spacing: -0.035em; text-shadow: 0 12px 38px rgba(0, 0, 0, 0.95), 0 3px 10px rgba(0, 0, 0, 0.98); }
+  .disp-outline { font-family: 'Unbounded', sans-serif; font-weight: 900; text-transform: uppercase; line-height: 0.92; letter-spacing: -0.035em; color: transparent; -webkit-text-stroke: 2.5px rgba(255, 30, 66, 0.5); }
+  .mono { font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; font-size: 20px; color: rgba(246, 243, 236, 0.38); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg_glow"></div>
+  <div class="mono" style="position:absolute; top: 140px;">SWOOSHY</div>
+  <div id="tc_bot" class="mono" style="position:absolute; bottom: 140px;">00:00:00</div>
+  <div id="f1" class="scene">
+    <div id="f1_a" class="w-item serif" style="font-size: 112px; color: var(--bone);">любить меня</div>
+    <div id="f1_b" class="w-item disp" style="font-size: 56px; color: rgba(246,243,236,0.88); margin-top: 18px;">НЕ ТО ЖЕ САМОЕ</div>
+  </div>
+  <div id="f2" class="scene">
+    <div id="f2_a" class="w-item disp" style="font-size: 52px; color: rgba(246,243,236,0.75);">ТО, ЧТО</div>
+    <div id="f2_b" class="w-item serif" style="font-size: 124px; color: var(--rose); margin-top: 8px; text-shadow: 0 0 38px rgba(255,148,184,0.45), 0 10px 30px #000;">любить тебя</div>
+  </div>
+  <div id="f3" class="scene">
+    <div id="f3_a" class="w-item serif" style="font-size: 86px; color: var(--bone);">я</div>
+    <div id="f3_b" class="w-item disp" style="font-size: 92px; color: var(--crimson); margin: 6px 0; text-shadow: 0 0 40px rgba(255,30,66,0.75), 0 10px 30px #000;">НЕНАВИЖУ</div>
+    <div id="f3_c" class="w-item serif" style="font-size: 104px; color: var(--bone);">все подарки</div>
+  </div>
+  <div id="f4" class="scene">
+    <div id="f4_a" class="w-item serif" style="font-size: 96px; color: rgba(246,243,236,0.85);">и думал,</div>
+    <div id="f4_b" class="w-item serif" style="font-size: 122px; color: var(--bone); margin-top: 6px;">ты поняла...</div>
+  </div>
+  <div id="f5" class="scene">
+    <div id="f5_a" class="w-item serif" style="font-size: 92px; color: var(--bone);">но я</div>
+    <div id="f5_b" class="w-item disp" style="font-size: 98px; color: var(--acid); margin-top: 10px; text-shadow: 0 0 40px rgba(226,255,68,0.55), 0 10px 30px #000;">НЕ ПРОТИВ</div>
+  </div>
+  <div id="f6" class="scene">
+    <div id="f6_a" class="w-item serif" style="font-size: 88px; color: rgba(246,243,236,0.9);">если это твоя</div>
+    <div id="f6_echo" class="w-item disp-outline" style="position:absolute; top: 53%; font-size: 138px;">П@ЗД@</div>
+    <div id="f6_b" class="w-item disp" style="font-size: 124px; color: var(--crimson); margin-top: 14px; text-shadow: 0 0 50px rgba(255,30,66,0.9), 0 12px 35px #000;">П@ЗД@</div>
+  </div>
+  <div id="f7" class="scene">
+    <div id="f7_a" class="w-item disp" style="font-size: 72px; color: var(--bone);">НЕТ, Я</div>
+    <div id="f7_b" class="w-item disp" style="font-size: 98px; color: var(--acid); margin-top: 10px; text-shadow: 0 0 40px rgba(226,255,68,0.55), 0 10px 30px #000;">НЕ ПРОТИВ</div>
+  </div>
+  <div id="f8" class="scene">
+    <div id="f8_a" class="w-item serif" style="font-size: 94px; color: rgba(246,243,236,0.85);">если это</div>
+    <div id="f8_b" class="w-item serif" style="font-size: 132px; color: var(--rose); margin-top: 4px; text-shadow: 0 0 42px rgba(255,148,184,0.6), 0 10px 30px #000;">твоя...</div>
+  </div>
+</div>
+<script>
+  const DUR = __DUR__;
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const p = (t, s, d) => clamp((t - s) / d);
+  const expoOut = x => x >= 1 ? 1 : 1 - Math.pow(2, -10 * x);
+  const power3In = x => x * x * x;
+  const backOut = (x, s = 1.9) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const $ = id => document.getElementById(id);
+  const ALL = ['f1','f2','f3','f4','f5','f6','f7','f8'];
+  function applyRgb(el, amt) {
+    if (amt > 0.4) {
+      const d = amt.toFixed(1);
+      el.style.textShadow = `-${d}px 0px #FF1844, ${d}px 0px #00F0FF, 0 12px 35px rgba(0,0,0,0.95)`;
+    } else { el.style.textShadow = ''; }
+  }
+  window.seekTo = function(t) {
+    ALL.forEach(id => { $(id).style.opacity = 0; });
+    const sec = Math.floor(t);
+    const fr = Math.floor((t - sec) * 30);
+    $('tc_bot').textContent = `00:${String(sec).padStart(2, '0')}:${String(fr).padStart(2, '0')}`;
+    const glow = $('bg_glow');
+    const gx = Math.sin(t * 0.9) * 90;
+    const gy = Math.cos(t * 0.7) * 110;
+    const gScale = t >= 8.15 ? 1.15 + Math.sin(t * 8) * 0.08 : 1.0;
+    glow.style.transform = `translate3d(${gx.toFixed(1)}px, ${gy.toFixed(1)}px, 0) scale(${gScale.toFixed(3)})`;
+    if (t >= 10.05 && t <= 11.98) {
+      glow.style.background = 'radial-gradient(circle, rgba(255, 30, 66, 0.28) 0%, rgba(160, 20, 60, 0.10) 48%, transparent 72%)';
+    } else {
+      glow.style.background = 'radial-gradient(circle, rgba(255, 110, 165, 0.22) 0%, rgba(120, 40, 200, 0.08) 45%, transparent 72%)';
+    }
+    if (t >= 0.35 && t < 2.35) {
+      const out = t > 2.10 ? power3In(p(t, 2.10, 0.25)) : 0;
+      $('f1').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 0.38, 0.50));
+      $('f1_a').style.opacity = u1.toFixed(3);
+      $('f1_a').style.transform = `translate3d(0, ${((1 - u1) * 35 - out * 30).toFixed(1)}px, 0)`;
+      const u2 = expoOut(p(t, 1.15, 0.45));
+      $('f1_b').style.opacity = u2.toFixed(3);
+      $('f1_b').style.transform = `translate3d(0, ${((1 - u2) * 30 - out * 30).toFixed(1)}px, 0)`;
+    }
+    if (t >= 2.35 && t < 4.25) {
+      const out = t > 4.00 ? power3In(p(t, 4.00, 0.25)) : 0;
+      $('f2').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 2.38, 0.36));
+      $('f2_a').style.opacity = u1.toFixed(3);
+      $('f2_a').style.transform = `translate3d(0, ${((1 - u1) * 25 - out * 30).toFixed(1)}px, 0)`;
+      const u2 = backOut(p(t, 2.90, 0.50), 1.6);
+      $('f2_b').style.opacity = clamp(p(t, 2.90, 0.20)).toFixed(3);
+      $('f2_b').style.transform = `translate3d(0, ${((1 - u2) * 40 - out * 30).toFixed(1)}px, 0) scale(${(0.92 + u2 * 0.08).toFixed(3)})`;
+    }
+    if (t >= 4.25 && t < 6.20) {
+      const out = t > 5.95 ? power3In(p(t, 5.95, 0.25)) : 0;
+      $('f3').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 4.28, 0.28));
+      $('f3_a').style.opacity = u1.toFixed(3);
+      if (t >= 4.55) {
+        const u2 = backOut(p(t, 4.55, 0.32), 2.2);
+        const rgb = (1 - p(t, 4.55, 0.26)) * 12;
+        $('f3_b').style.opacity = 1;
+        $('f3_b').style.transform = `scale(${(1 + (1 - u2) * 0.4).toFixed(3)})`;
+        applyRgb($('f3_b'), rgb);
+      } else { $('f3_b').style.opacity = 0; }
+      if (t >= 5.20) {
+        const u3 = expoOut(p(t, 5.20, 0.40));
+        $('f3_c').style.opacity = u3.toFixed(3);
+        $('f3_c').style.transform = `translate3d(0, ${((1 - u3) * 35).toFixed(1)}px, 0)`;
+      } else { $('f3_c').style.opacity = 0; }
+    }
+    if (t >= 6.20 && t < 8.15) {
+      const out = t > 7.90 ? power3In(p(t, 7.90, 0.25)) : 0;
+      $('f4').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 6.24, 0.40));
+      $('f4_a').style.opacity = u1.toFixed(3);
+      $('f4_a').style.transform = `translate3d(0, ${((1 - u1) * 28).toFixed(1)}px, 0)`;
+      if (t >= 6.85) {
+        const u2 = expoOut(p(t, 6.85, 0.45));
+        $('f4_b').style.opacity = u2.toFixed(3);
+        $('f4_b').style.transform = `translate3d(0, ${((1 - u2) * 35).toFixed(1)}px, 0)`;
+      } else { $('f4_b').style.opacity = 0; }
+    }
+    if (t >= 8.15 && t < 10.05) {
+      const out = t > 9.80 ? power3In(p(t, 9.80, 0.25)) : 0;
+      $('f5').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 8.18, 0.32));
+      $('f5_a').style.opacity = u1.toFixed(3);
+      $('f5_a').style.transform = `translate3d(0, ${((1 - u1) * 25).toFixed(1)}px, 0)`;
+      if (t >= 8.65) {
+        const u2 = backOut(p(t, 8.65, 0.32), 2.2);
+        const rgb = (1 - p(t, 8.65, 0.26)) * 12;
+        $('f5_b').style.opacity = 1;
+        $('f5_b').style.transform = `scale(${(1 + (1 - u2) * 0.42).toFixed(3)})`;
+        applyRgb($('f5_b'), rgb);
+      } else { $('f5_b').style.opacity = 0; }
+    }
+    if (t >= 10.05 && t < 11.98) {
+      const out = t > 11.74 ? power3In(p(t, 11.74, 0.24)) : 0;
+      $('f6').style.opacity = (1 - out).toFixed(3);
+      const u1 = expoOut(p(t, 10.08, 0.38));
+      $('f6_a').style.opacity = u1.toFixed(3);
+      $('f6_a').style.transform = `translate3d(0, ${((1 - u1) * 30).toFixed(1)}px, 0)`;
+      if (t >= 10.85) {
+        const u2 = backOut(p(t, 10.85, 0.30), 2.5);
+        const shakeX = Math.sin(t * 95) * 6 * (1 - p(t, 10.85, 0.40));
+        const rgb = (1 - p(t, 10.85, 0.32)) * 16;
+        $('f6_b').style.opacity = 1;
+        $('f6_b').style.transform = `translate3d(${shakeX.toFixed(1)}px, 0, 0) scale(${(1 + (1 - u2) * 0.55).toFixed(3)})`;
+        applyRgb($('f6_b'), rgb);
+        $('f6_echo').style.opacity = ((1 - p(t, 10.85, 0.55)) * 0.7).toFixed(3);
+        $('f6_echo').style.transform = `scale(${(1.06 + p(t, 10.85, 0.55) * 0.35).toFixed(3)})`;
+      } else {
+        $('f6_b').style.opacity = 0;
+        $('f6_echo').style.opacity = 0;
+      }
+    }
+    if (t >= 11.98 && t < 13.85) {
+      const out = t > 13.60 ? power3In(p(t, 13.60, 0.25)) : 0;
+      $('f7').style.opacity = (1 - out).toFixed(3);
+      const u1 = backOut(p(t, 12.00, 0.28), 2.0);
+      $('f7_a').style.opacity = 1;
+      $('f7_a').style.transform = `scale(${(1 + (1 - u1) * 0.3).toFixed(3)})`;
+      if (t >= 12.50) {
+        const u2 = backOut(p(t, 12.50, 0.32), 2.2);
+        const rgb = (1 - p(t, 12.50, 0.26)) * 12;
+        $('f7_b').style.opacity = 1;
+        $('f7_b').style.transform = `scale(${(1 + (1 - u2) * 0.42).toFixed(3)})`;
+        applyRgb($('f7_b'), rgb);
+      } else { $('f7_b').style.opacity = 0; }
+    }
+    if (t >= 13.85) {
+      const fade = t > DUR - 0.35 ? p(t, DUR - 0.35, 0.35) : 0;
+      $('f8').style.opacity = (1 - fade).toFixed(3);
+      const u1 = expoOut(p(t, 13.88, 0.38));
+      $('f8_a').style.opacity = u1.toFixed(3);
+      $('f8_a').style.transform = `translate3d(0, ${((1 - u1) * 28).toFixed(1)}px, 0)`;
+      if (t >= 14.45) {
+        const u2 = expoOut(p(t, 14.45, 0.50));
+        $('f8_b').style.opacity = u2.toFixed(3);
+        $('f8_b').style.transform = `translate3d(0, ${((1 - u2) * 35).toFixed(1)}px, 0) scale(${(0.94 + u2 * 0.06).toFixed(3)})`;
+      } else { $('f8_b').style.opacity = 0; }
+    }
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0D0D11">
+
+    <FrameLayout
+        android:layout_width="1080px"
+        android:layout_height="1920px"
+        android:translationX="5000dp">
+        <WebView
+            android:id="@+id/offscreenWebView"
+            android:layout_width="1080px"
+            android:layout_height="1920px" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SWOOSHY JS RENDERER"
+            android:textColor="#F6F3EC"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp"/>
+
+        <Button
+            android:id="@+id/btnPickAudio"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="1. Выбрать аудио (.mp3)"
+            android:backgroundTint="#23232E"
+            android:textColor="#FFFFFF"/>
+
+        <Button
+            android:id="@+id/btnPickVideo"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="10dp"
+            android:text="2. Видео-фон (.mp4) [Опционально]"
+            android:backgroundTint="#23232E"
+            android:textColor="#FFFFFF"/>
+
+        <Button
+            android:id="@+id/btnPickHtml"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="10dp"
+            android:text="3. Свой шаблон (.html) [По умолч. вшит]"
+            android:backgroundTint="#23232E"
+            android:textColor="#FFFFFF"/>
+
+        <Button
+            android:id="@+id/btnRender"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="24dp"
+            android:text="НАЧАТЬ РЕНДЕР (1080x1920)"
+            android:backgroundTint="#FF1E42"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="16sp"/>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="12dp"
+            android:layout_marginTop="24dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#E2FF44"/>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Готов к работе.\nВыберите MP3 для старта."
+            android:textColor="#A0A0B0"
+            android:fontFamily="monospace"
+            android:textSize="13sp"/>
+    </LinearLayout>
+</FrameLayout>
