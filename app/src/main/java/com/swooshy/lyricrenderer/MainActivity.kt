@@ -1,5 +1,6 @@
 package com.swooshy.lyricrenderer
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -11,7 +12,9 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.view.View
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -39,6 +42,19 @@ class MainActivity : AppCompatActivity() {
     private val W = 1080
     private val H = 1920
     private val FPS = 30
+
+    @Volatile
+    private var frameReadyContinuation: CancellableContinuation<Unit>? = null
+
+    inner class RenderBridge {
+        @JavascriptInterface
+        fun onFrameReady() {
+            frameReadyContinuation?.let { cont ->
+                frameReadyContinuation = null
+                if (cont.isActive) cont.resume(Unit)
+            }
+        }
+    }
 
     private val pickAudioLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -74,6 +90,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
@@ -87,16 +104,18 @@ class MainActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         btnRender = findViewById(R.id.btnRender)
 
+        // ВАЖНО: Задаем масштаб 100% (1 CSS px = 1 физический px), чтобы не было 3x зума плотности экрана!
+        webView.setInitialScale(100)
         webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            textZoom = 100
+            useWideViewPort = false
+            loadWithOverviewMode = false
+        }
         webView.setBackgroundColor(Color.TRANSPARENT)
-
-        webView.measure(
-            View.MeasureSpec.makeMeasureSpec(W, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(H, View.MeasureSpec.EXACTLY)
-        )
-        webView.layout(0, 0, W, H)
+        webView.addJavascriptInterface(RenderBridge(), "AndroidBridge")
 
         findViewById<Button>(R.id.btnPickAudio).setOnClickListener { pickAudioLauncher.launch("audio/*") }
         findViewById<Button>(R.id.btnPickVideo).setOnClickListener { pickVideoLauncher.launch("video/*") }
@@ -144,8 +163,56 @@ class MainActivity : AppCompatActivity() {
             .replace("__BG_COLOR__", if (hasVideoBg) "transparent" else "#070709")
             .replace("__GLOW_DISPLAY__", if (hasVideoBg) "none" else "block")
 
+        // Ждем полной загрузки HTML в WebView
+        val pageLoaded = CompletableDeferred<Unit>()
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                if (!pageLoaded.isCompleted) pageLoaded.complete(Unit)
+            }
+        }
+        webView.setInitialScale(100)
         webView.loadDataWithBaseURL("https://fonts.googleapis.com/", finalHtml, "text/html", "UTF-8", null)
-        delay(2200)
+        withTimeoutOrNull(5000) { pageLoaded.await() }
+
+        // Внедряем синхронизатор кадров и авто-калибровку масштаба 1080x1920
+        val initJs = """
+            (function() {
+                window.__fontsReady = false;
+                if (document.fonts && document.fonts.ready) {
+                    document.fonts.ready.then(function() { window.__fontsReady = true; });
+                } else {
+                    window.__fontsReady = true;
+                }
+                var vw = document.documentElement.clientWidth || window.innerWidth;
+                if (vw > 0 && Math.abs(vw - 1080) > 2) {
+                    var s = vw / 1080;
+                    document.body.style.transformOrigin = '0 0';
+                    document.body.style.transform = 'scale(' + s + ')';
+                }
+                window.__stepFrame = function(t) {
+                    if (window.seekTo) window.seekTo(t);
+                    document.body.offsetHeight;
+                    requestAnimationFrame(function() {
+                        setTimeout(function() {
+                            if (window.AndroidBridge) window.AndroidBridge.onFrameReady();
+                        }, 0);
+                    });
+                };
+            })();
+        """.trimIndent()
+
+        suspendCancellableCoroutine<Unit> { cont ->
+            webView.evaluateJavascript(initJs) { cont.resume(Unit) }
+        }
+
+        // Ждем загрузки Google Fonts (до 3 секунд)
+        for (i in 0 until 30) {
+            val ready = suspendCancellableCoroutine<String> { cont ->
+                webView.evaluateJavascript("window.__fontsReady") { res -> cont.resume(res ?: "false") }
+            }
+            if (ready == "true") break
+            delay(100)
+        }
 
         val framesDir = File(cacheDir, "frames").apply {
             if (exists()) deleteRecursively()
@@ -160,14 +227,13 @@ class MainActivity : AppCompatActivity() {
         for (f in 0 until totalFrames) {
             val t = f.toDouble() / FPS
 
-            suspendCancellableCoroutine<Unit> { cont ->
-                webView.evaluateJavascript("if(window.seekTo) window.seekTo($t);") { cont.resume(Unit) }
+            // Вызываем шаг анимации и ждем отрисовки кадра браузером (requestAnimationFrame)
+            withTimeoutOrNull(80) {
+                suspendCancellableCoroutine<Unit> { cont ->
+                    frameReadyContinuation = cont
+                    webView.evaluateJavascript("window.__stepFrame($t);", null)
+                }
             }
-            webView.measure(
-                View.MeasureSpec.makeMeasureSpec(W, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(H, View.MeasureSpec.EXACTLY)
-            )
-            webView.layout(0, 0, W, H)
 
             if (hasVideoBg) {
                 bitmap.eraseColor(Color.TRANSPARENT)
